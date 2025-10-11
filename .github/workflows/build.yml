@@ -18,7 +18,6 @@ jobs:
         include:
           - os: ubuntu-latest
             python: "3.12"
-        group: ["docs"]
     timeout-minutes: 15
 
     steps:
