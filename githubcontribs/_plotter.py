@@ -87,7 +87,7 @@ class Plotter:
             plt.gca().bar_label(c, label_type="center", fmt="%d")
 
         # Customize the plot with date range and repos in title
-        plt.title(f"Contribution to repositories by author: {repos}\n{date_range}")
+        plt.title(f"Contributions to repositories by author: {repos}\n{date_range}")
         plt.xlabel("Number of contributions")
         plt.ylabel("Author")
 
