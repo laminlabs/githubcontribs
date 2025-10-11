@@ -2,16 +2,16 @@
 
 Install:
 
-```
+```bash
 pip install githubcontribs
 ```
 
 Quickstart:
 
-```
-from githubcontribs import GitHubContribs
-contribs = GitHubContribs("laminlabs")
-df = contribs.get_contribs("lamindb")
+```python
+import githubcontribs
+fetcher = githubcontribs.Fetcher("laminlabs")
+df = fetcher.run("lamindb")
 df.head()
 #> Dataframe of contributions
 ```
