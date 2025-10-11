@@ -30,10 +30,17 @@ class Plotter:
         )
 
     def plot_number_by_month_by_author(
-        self, top_n: int = 10, exclude_author: str = "github-actions[bot]"
+        self,
+        top_n: int = 10,
+        exclude_author: str = "github-actions[bot]",
+        type_filter: str = None,
     ):
         self._plot_contributions(
-            x="time", hue="author", top_n=top_n, exclude_author=exclude_author
+            x="time",
+            hue="author",
+            top_n=top_n,
+            exclude_author=exclude_author,
+            type_filter=type_filter,
         )
 
     def _plot_contributions(
@@ -43,6 +50,7 @@ class Plotter:
         top_n: int = 10,
         exclude_author: str = "github-actions[bot]",
         time_aggregation: str = "month",
+        type_filter: str = None,
     ):
         """A configurable plot showing contributions.
 
@@ -52,8 +60,17 @@ class Plotter:
             top_n: Number of top items to show (authors or time periods). Defaults to 10.
             exclude_author: Author to exclude from the plot. Defaults to "github-actions[bot]".
             time_aggregation: Time aggregation level when x="time". Options: "day", "week", "month", "year". Defaults to "month".
+            type_filter: Filter to specific contribution type. Options: "commit", "issue", "pr", or None for all types.
         """
         df = self.df[self.df.author != exclude_author].copy()
+
+        # Filter by type if specified
+        if type_filter is not None:
+            if type_filter not in ["commit", "issue", "pr"]:
+                raise ValueError(
+                    f"Invalid type_filter: {type_filter}. Must be 'commit', 'issue', 'pr', or None"
+                )
+            df = df[df.type == type_filter]
 
         # Convert date column to datetime
         df["date"] = pd.to_datetime(df["date"])
@@ -171,6 +188,14 @@ class Plotter:
         # Get repositories
         repos = ", ".join(sorted(df["repo"].unique()))
 
+        # Build title with type filter info if applicable
+        title_parts = [f"Contributions to repositories: {repos}"]
+        if type_filter is not None:
+            type_name_map = {"commit": "Commits", "issue": "Issues", "pr": "PRs"}
+            title_parts[0] = f"{type_name_map[type_filter]} to repositories: {repos}"
+        title_parts.append(date_range)
+        title = "\n".join(title_parts)
+
         # Set up the plot
         fig_width = max(12, len(plot_data[x_var].unique()) * 0.8)
         plt.figure(figsize=(fig_width, 8))
@@ -186,7 +211,7 @@ class Plotter:
                 ax.bar_label(c, label_type="edge", fmt="%d", padding=3)
 
         # Customize the plot
-        plt.title(f"Contributions to repositories: {repos}\n{date_range}")
+        plt.title(title)
         plt.ylabel("Number of contributions")
         plt.xlabel(x_label)
 
