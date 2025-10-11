@@ -15,5 +15,4 @@ def lint(session: nox.Session) -> None:
 
 @nox.session()
 def build(session):
-    session.run(*"uv pip install --system -e .[dev]".split())
     run_pytest(session)
