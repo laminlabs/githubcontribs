@@ -19,7 +19,7 @@ class Fetcher:
     Usage::
 
         fetcher = Fetcher(org_name="my-org")
-        df = contribs.fetch()
+        df = contribs.run()
     """
 
     def __init__(self, org_name: str, token: str = None):
@@ -78,14 +78,16 @@ class Fetcher:
             results = []
             page: int = 1
             while True:
+                params = {
+                    "state": "all",
+                    "page": page,
+                    "per_page": 100,
+                    "since": start_date_str,  # For commits: filters by author date; for issues/PRs: filters by updated_at
+                }
+
                 response = self.session.get(
                     f"{self.base_url}/repos/{self.org_name}/{repo_name}/{endpoint}",
-                    params={  # type: ignore
-                        "since": start_date_str,
-                        "state": "all",
-                        "page": page,
-                        "per_page": 100,
-                    },
+                    params=params,  # type: ignore
                 )
                 if response.status_code == 404:
                     return []
@@ -112,6 +114,14 @@ class Fetcher:
         """Get commits, issues, and PRs for a specific repository since start_date as dataframes."""
         commits, issues, prs = self._fetch_contribs_as_dicts(repo_name, start_date)
 
+        # Convert start_date for filtering issues and PRs
+        if isinstance(start_date, str):
+            start_date_dt = datetime.fromisoformat(start_date)
+        elif start_date is None:
+            start_date_dt = datetime.now() - timedelta(days=90)
+        else:
+            start_date_dt = start_date
+
         data = []
 
         for commit in commits:
@@ -132,6 +142,9 @@ class Fetcher:
 
         for issue in issues:
             created_date = issue["created_at"][:10]
+            # Filter by date - skip if created before start_date
+            if datetime.fromisoformat(created_date) < start_date_dt:
+                continue
             data.append(
                 {
                     "date": created_date,
@@ -146,6 +159,9 @@ class Fetcher:
 
         for pr in prs:
             created_date = pr["created_at"][:10]
+            # Filter by date - skip if created before start_date
+            if datetime.fromisoformat(created_date) < start_date_dt:
+                continue
             data.append(
                 {
                     "date": created_date,
