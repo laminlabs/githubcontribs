@@ -23,17 +23,25 @@ class Plotter:
         sns.set_theme()
 
     def plot_total_number_by_author_by_type(
-        self, top_n: int = 10, exclude_author: str = "github-actions[bot]"
+        self,
+        top_n: int = 10,
+        exclude_author: str = "github-actions[bot]",
+        start_date: str = None,
     ):
         self._plot_contributions(
-            x="author", hue="type", top_n=top_n, exclude_author=exclude_author
+            x="author",
+            hue="type",
+            top_n=top_n,
+            exclude_author=exclude_author,
+            start_date=start_date,
         )
 
     def plot_number_by_month_by_author(
         self,
         top_n: int = 10,
         exclude_author: str = "github-actions[bot]",
-        type_filter: str = None,
+        type_filter: str = "pr",
+        start_date: str = None,
     ):
         self._plot_contributions(
             x="time",
@@ -41,6 +49,7 @@ class Plotter:
             top_n=top_n,
             exclude_author=exclude_author,
             type_filter=type_filter,
+            start_date=start_date,
         )
 
     def _plot_contributions(
@@ -51,6 +60,7 @@ class Plotter:
         exclude_author: str = "github-actions[bot]",
         time_aggregation: str = "month",
         type_filter: str = None,
+        start_date: str = None,
     ):
         """A configurable plot showing contributions.
 
@@ -61,8 +71,17 @@ class Plotter:
             exclude_author: Author to exclude from the plot. Defaults to "github-actions[bot]".
             time_aggregation: Time aggregation level when x="time". Options: "day", "week", "month", "year". Defaults to "month".
             type_filter: Filter to specific contribution type. Options: "commit", "issue", "pr", or None for all types.
+            start_date: Filter contributions to only include those on or after this date. Format: "YYYY-MM-DD". Defaults to None (no filter).
         """
         df = self.df[self.df.author != exclude_author].copy()
+
+        # Convert date column to datetime
+        df["date"] = pd.to_datetime(df["date"])
+
+        # Filter by start_date if specified
+        if start_date is not None:
+            start_date_dt = pd.to_datetime(start_date)
+            df = df[df["date"] >= start_date_dt]
 
         # Filter by type if specified
         if type_filter is not None:
@@ -71,9 +90,6 @@ class Plotter:
                     f"Invalid type_filter: {type_filter}. Must be 'commit', 'issue', 'pr', or None"
                 )
             df = df[df.type == type_filter]
-
-        # Convert date column to datetime
-        df["date"] = pd.to_datetime(df["date"])
 
         # Prepare data based on configuration
         if x == "time":
