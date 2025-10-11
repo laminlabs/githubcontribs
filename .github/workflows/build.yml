@@ -11,6 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GITHUB_EVENT_NAME: ${{ github.event_name }}
+      GITHUB_TOKEN: ${{ secrets.LAMIN_BUILD_DOCS }}
     strategy:
       fail-fast: false
       matrix:
