@@ -10,6 +10,7 @@ readme = "README.md"
 dynamic = ["version", "description"]
 dependencies = [
     "pandas",
+    "requests",
 ]
 
 [project.urls]
