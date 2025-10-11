@@ -17,6 +17,12 @@ def setup_svg_output():
 
 
 class Plotter:
+    """Initialize the Plotter with a DataFrame of contributions obtained by the `Fetcher`.
+
+    Args:
+        df: DataFrame containing contribution data with columns: author, type, date, repo.
+    """
+
     def __init__(self, df: pd.DataFrame):
         self.df = df
         setup_svg_output()
@@ -28,6 +34,17 @@ class Plotter:
         exclude_author: str = "github-actions[bot]",
         start_date: str = None,
     ):
+        """Plot total contributions by author, grouped by contribution type.
+
+        Creates a bar chart showing the number of commits, pull requests, and issues
+        for the top N contributors.
+
+        Args:
+            top_n: Number of top contributors to display. Defaults to 10.
+            exclude_author: Author to exclude from the plot. Defaults to "github-actions[bot]".
+            start_date: Only include contributions on or after this date (format: "YYYY-MM-DD").
+                       Defaults to None (no filter).
+        """
         self._plot_contributions(
             x="author",
             hue="type",
@@ -43,6 +60,19 @@ class Plotter:
         type_filter: str = "pr",
         start_date: str = None,
     ):
+        """Plot contributions over time by author.
+
+        Creates a bar chart showing contributions aggregated by month, with different
+        colors for each author. Useful for tracking contributor activity over time.
+
+        Args:
+            top_n: Number of top contributors to display. Defaults to 10.
+            exclude_author: Author to exclude from the plot. Defaults to "github-actions[bot]".
+            type_filter: Show only this type of contribution ("commit", "issue", or "pr").
+                        Defaults to "pr".
+            start_date: Only include contributions on or after this date (format: "YYYY-MM-DD").
+                       Defaults to None (no filter).
+        """
         self._plot_contributions(
             x="time",
             hue="author",
