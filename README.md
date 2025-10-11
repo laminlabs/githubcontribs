@@ -35,7 +35,3 @@ plotter.plot_number_by_month_by_author()
 <img width="500" height="624" alt="image" src="https://github.com/user-attachments/assets/cfa31614-352b-469f-bf48-eeaca29cd5dd" />
 
 If you want to make such analyses reproducible: [here](https://lamin.ai/laminlabs/lamin-dev/transform/X1ZxsmZxISxW0001) is how to track the notebooks, environments, and input & ouput data for these plots. 
-
-# How to contribute
-
-How to contribute to this repo: Please run `pre-commit install` and `gitmoji -i` on the CLI before starting to work on this repository!
