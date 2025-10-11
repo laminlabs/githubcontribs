@@ -18,8 +18,8 @@ class GitHubContribs:
         """Init.
 
         Args:
-            org_name (str): Name of the GitHub organization
-            token (str): GitHub personal access token
+            org_name: Name of the GitHub organization.
+            token: GitHub personal access token. Read from `GITHUB_TOKEN` env var if `None`. Loads `.env` from the current working directory.
         """
         load_dotenv()
         token = token or os.getenv("GITHUB_TOKEN")
