@@ -13,7 +13,15 @@ urllib3.disable_warnings()
 from dotenv import load_dotenv
 
 
-class GitHubContribs:
+class Fetcher:
+    """Fetch GitHub contributions (commits, issues, PRs) for a given organization.
+
+    Usage::
+
+        fetcher = Fetcher(org_name="my-org")
+        df = contribs.fetch()
+    """
+
     def __init__(self, org_name: str, token: str = None):
         """Init.
 
@@ -49,7 +57,7 @@ class GitHubContribs:
         self.session.mount("https://", adapter)
         self.session.headers.update(self.headers)
 
-    def _get_contribs_as_dicts(
+    def _fetch_contribs_as_dicts(
         self, repo_name: str, start_date: str | datetime | None = None
     ) -> tuple[list[dict], list[dict], list[dict]]:
         """Get commits, issues, and PRs for a specific repository since start_date as dicts."""
@@ -98,11 +106,11 @@ class GitHubContribs:
 
         return commits, issues, prs
 
-    def _get_contribs_per_repo(
+    def _fetch_contribs_per_repo(
         self, repo_name: str, start_date: str | None = None
     ) -> pd.DataFrame:
         """Get commits, issues, and PRs for a specific repository since start_date as dataframes."""
-        commits, issues, prs = self._get_contribs_as_dicts(repo_name, start_date)
+        commits, issues, prs = self._fetch_contribs_as_dicts(repo_name, start_date)
 
         data = []
 
@@ -152,7 +160,7 @@ class GitHubContribs:
 
         return pd.DataFrame(data)
 
-    def get_contribs(
+    def run(
         self, repo_names: str | list[str], *, start_date: str | None = None
     ) -> pd.DataFrame:
         """Get commits, issues, and PRs for all or specific repositories since start_date as a dataframe.
@@ -166,7 +174,7 @@ class GitHubContribs:
 
         contribs = pd.DataFrame()
         for repo_name in repo_names:
-            repo_contribs = self._get_contribs_per_repo(repo_name, start_date)
+            repo_contribs = self._fetch_contribs_per_repo(repo_name, start_date)
             contribs = pd.concat([contribs, repo_contribs], ignore_index=True)
 
         return contribs
