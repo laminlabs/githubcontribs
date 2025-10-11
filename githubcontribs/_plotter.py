@@ -22,7 +22,7 @@ class Plotter:
         setup_svg_output()
         sns.set_theme()
 
-    def plot_contributor_activity(
+    def plot_total_number_by_author(
         self, top_n: int = 10, exclude_author: str = "github-actions[bot]"
     ):
         """A horizontal bar plot showing contribution types per author.
@@ -31,7 +31,7 @@ class Plotter:
             top_n: Number of top contributors to show. Defaults to 10.
             exclude_author: Author to exclude from the plot. Defaults to "github-actions[bot]".
         """
-        df = self.df
+        df = self.df[self.df.author != exclude_author]
 
         commits_df: pd.DataFrame = df[df.type == "commit"]
         issues_df: pd.DataFrame = df[df.type == "issue"]
@@ -40,18 +40,18 @@ class Plotter:
         # Prepare the data
         contributors_data = pd.concat(
             [
+                prs_df.groupby("author").size().rename("Pull requests"),
                 commits_df.groupby("author").size().rename("Commits"),
                 issues_df.groupby("author").size().rename("Issues"),
-                prs_df.groupby("author").size().rename("Pull Requests"),
             ],
             axis=1,
         ).fillna(0)
 
         # Sort by total contributions and get top N
         contributors_data["Total"] = contributors_data.sum(axis=1)
-        contributors_data = contributors_data.sort_values("Total", ascending=True).tail(
-            top_n
-        )
+        contributors_data = contributors_data.sort_values(
+            "Total", ascending=False
+        ).head(top_n)
         contributors_data = contributors_data.drop("Total", axis=1)
 
         # Reshape data for seaborn
