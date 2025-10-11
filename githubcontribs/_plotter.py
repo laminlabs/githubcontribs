@@ -25,7 +25,7 @@ class Plotter:
     def plot_total_number_by_author(
         self, top_n: int = 10, exclude_author: str = "github-actions[bot]"
     ):
-        """A horizontal bar plot showing contribution types per author.
+        """A vertical bar plot showing contribution types per author.
 
         Args:
             top_n: Number of top contributors to show. Defaults to 10.
@@ -69,30 +69,33 @@ class Plotter:
         # Get all unique repositories
         repos = ", ".join(sorted(df["repo"].unique()))
 
-        # Set up the plot style
-        plt.figure(figsize=(12, max(8, top_n * 0.5)))
+        # Set up the plot style - adjusted figsize for vertical orientation
+        plt.figure(figsize=(max(10, top_n * 0.8), 8))
 
-        # Create the plot
+        # Create the plot - changed to vertical orientation
         sns.barplot(
             data=plot_data,
-            y="author",
-            x="Count",
+            x="author",
+            y="Count",
             hue="Activity Type",
             palette=["#2ecc71", "#3498db", "#e74c3c"],
-            orient="h",
+            order=contributors_data.index,  # Maintain the sorted order
         )
 
         # Add value labels
         for c in plt.gca().containers:
-            plt.gca().bar_label(c, label_type="center", fmt="%d")
+            plt.gca().bar_label(c, label_type="edge", fmt="%d", padding=3)
 
         # Customize the plot with date range and repos in title
         plt.title(f"Contributions to repositories by author: {repos}\n{date_range}")
-        plt.xlabel("Number of contributions")
-        plt.ylabel("Author")
+        plt.ylabel("Number of contributions")
+        plt.xlabel("Author")
 
-        # Adjust legend position
-        plt.legend(bbox_to_anchor=(1, 1.02), loc="upper left")
+        # Rotate x-axis labels for better readability
+        plt.xticks(rotation=45, ha="right")
+
+        # Position legend inside the canvas (upper right)
+        plt.legend(loc="upper right")
 
         # Ensure all labels are visible
         plt.tight_layout()
