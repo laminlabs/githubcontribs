@@ -50,7 +50,7 @@ class GitHubContribs:
         self.session.headers.update(self.headers)
 
     def _get_contribs_as_dicts(
-        self, repo: str, start_date: str | datetime | None = None
+        self, repo_name: str, start_date: str | datetime | None = None
     ) -> tuple[list[dict], list[dict], list[dict]]:
         """Get commits, issues, and PRs for a specific repository since start_date as dicts."""
         if isinstance(start_date, str):
@@ -61,7 +61,7 @@ class GitHubContribs:
             start_date_dt = start_date
 
         print(
-            f"fetching contributions for repository {repo} since {start_date_dt:%Y-%m-%d}"
+            f"fetching contributions for repository {repo_name} since {start_date_dt:%Y-%m-%d}"
         )
 
         start_date_str: str = start_date_dt.isoformat()
@@ -71,7 +71,7 @@ class GitHubContribs:
             page: int = 1
             while True:
                 response = self.session.get(
-                    f"{self.base_url}/repos/{self.org_name}/{repo}/{endpoint}",
+                    f"{self.base_url}/repos/{self.org_name}/{repo_name}/{endpoint}",
                     params={  # type: ignore
                         "since": start_date_str,
                         "state": "all",
@@ -98,9 +98,11 @@ class GitHubContribs:
 
         return commits, issues, prs
 
-    def get_contribs(self, repo: str, start_date: str | None = None) -> pd.DataFrame:
+    def _get_contribs_per_repo(
+        self, repo_name: str, start_date: str | None = None
+    ) -> pd.DataFrame:
         """Get commits, issues, and PRs for a specific repository since start_date as dataframes."""
-        commits, issues, prs = self._get_contribs_as_dicts(repo, start_date)
+        commits, issues, prs = self._get_contribs_as_dicts(repo_name, start_date)
 
         data = []
 
@@ -114,7 +116,7 @@ class GitHubContribs:
                         or commit.get("commit", {}).get("author", {}).get("name")
                         or "unknown"
                     ),
-                    "repo": repo,
+                    "repo": repo_name,
                     "type": "commit",
                     "title": commit["commit"]["message"],
                 }
@@ -126,7 +128,7 @@ class GitHubContribs:
                 {
                     "date": created_date,
                     "author": issue["user"]["login"],
-                    "repo": repo,
+                    "repo": repo_name,
                     "type": "issue",
                     "title": issue["title"],
                     "state": issue["state"],
@@ -140,7 +142,7 @@ class GitHubContribs:
                 {
                     "date": created_date,
                     "author": pr["user"]["login"],
-                    "repo": repo,
+                    "repo": repo_name,
                     "type": "pr",
                     "title": pr["title"],
                     "state": pr["state"],
@@ -149,3 +151,22 @@ class GitHubContribs:
             )
 
         return pd.DataFrame(data)
+
+    def get_contribs(
+        self, repo_names: str | list[str], *, start_date: str | None = None
+    ) -> pd.DataFrame:
+        """Get commits, issues, and PRs for all or specific repositories since start_date as a dataframe.
+
+        Args:
+            repo_names: List of repository names. If None, fetches all repositories in the organization.
+            start_date: Start date in ISO format (YYYY-MM-DD). Defaults to 90 days ago if None.
+        """
+        if isinstance(repo_names, str):
+            repo_names = [repo_names]
+
+        contribs = pd.DataFrame()
+        for repo_name in repo_names:
+            repo_contribs = self._get_contribs_per_repo(repo_name, start_date)
+            contribs = pd.concat([contribs, repo_contribs], ignore_index=True)
+
+        return contribs
