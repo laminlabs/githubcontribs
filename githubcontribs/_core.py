@@ -24,8 +24,8 @@ class GitHubContribs:
         load_dotenv()
         token = token or os.getenv("GITHUB_TOKEN")
         if token is None:
-            print(
-                "Warning: No GitHub token provided. Only public repositories will be accessible, and rate limits may apply."
+            raise ValueError(
+                "No GitHub token provided. Set env variable `GITHUB_TOKEN`, e.g. in `.env` in the current working directory."
             )
 
         self.org_name = org_name
