@@ -22,11 +22,14 @@ class Plotter:
         setup_svg_output()
         sns.set_theme()
 
-    def plot_contributor_activity(self, top_n: int = 10):
+    def plot_contributor_activity(
+        self, top_n: int = 10, exclude_author: str = "github-actions[bot]"
+    ):
         """A horizontal bar plot showing contribution types per author.
 
         Args:
             top_n: Number of top contributors to show. Defaults to 10.
+            exclude_author: Author to exclude from the plot. Defaults to "github-actions[bot]".
         """
         df = self.df
 
@@ -56,6 +59,16 @@ class Plotter:
             id_vars="author", var_name="Activity Type", value_name="Count"
         )
 
+        # Calculate date range from the dataframe
+        min_date = pd.to_datetime(df["date"]).min()
+        max_date = pd.to_datetime(df["date"]).max()
+        date_range = (
+            f"{min_date.strftime('%Y-%m-%d')} to {max_date.strftime('%Y-%m-%d')}"
+        )
+
+        # Get all unique repositories
+        repos = ", ".join(sorted(df["repo"].unique()))
+
         # Set up the plot style
         plt.figure(figsize=(12, max(8, top_n * 0.5)))
 
@@ -73,9 +86,9 @@ class Plotter:
         for c in plt.gca().containers:
             plt.gca().bar_label(c, label_type="center", fmt="%d")
 
-        # Customize the plot
-        plt.title("Contribution Types by Author")
-        plt.xlabel("Number of Contributions")
+        # Customize the plot with date range and repos in title
+        plt.title(f"Contribution to repositories by author: {repos}\n{date_range}")
+        plt.xlabel("Number of contributions")
         plt.ylabel("Author")
 
         # Adjust legend position
@@ -83,5 +96,3 @@ class Plotter:
 
         # Ensure all labels are visible
         plt.tight_layout()
-
-        # No need to return anything - plot is displayed in notebook
