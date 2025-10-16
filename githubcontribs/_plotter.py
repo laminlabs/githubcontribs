@@ -230,7 +230,12 @@ class Plotter:
         )
 
         # Get repositories
-        repos = ", ".join(sorted(df["repo"].unique()))
+        repos_list = sorted(df["repo"].unique())
+        repos_chunks = [repos_list[i : i + 10] for i in range(0, len(repos_list), 10)]
+        repos = "\n".join([", ".join(chunk) for chunk in repos_chunks])
+
+        # Build title with type filter info if applicable
+        title_parts = [f"Contributions to repositories: {repos}"]
 
         # Build title with type filter info if applicable
         title_parts = [f"Contributions to repositories: {repos}"]
