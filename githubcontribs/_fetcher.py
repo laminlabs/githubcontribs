@@ -6,6 +6,7 @@ import pandas as pd
 import requests
 import urllib3
 from requests.adapters import HTTPAdapter
+from tqdm import tqdm
 from urllib3.util.retry import Retry
 
 warnings.filterwarnings("ignore")
@@ -57,7 +58,7 @@ class Fetcher:
         self.session.mount("https://", adapter)
         self.session.headers.update(self.headers)
 
-    def _fetch_contribs_as_dicts(
+    def _fetch_contribs_per_repo_as_dicts(
         self, repo_name: str, start_date: str | datetime | None = None
     ) -> tuple[list[dict], list[dict], list[dict]]:
         """Get commits, issues, and PRs for a specific repository since start_date as dicts."""
@@ -112,7 +113,9 @@ class Fetcher:
         self, repo_name: str, start_date: str | None = None
     ) -> pd.DataFrame:
         """Get commits, issues, and PRs for a specific repository since start_date as dataframes."""
-        commits, issues, prs = self._fetch_contribs_as_dicts(repo_name, start_date)
+        commits, issues, prs = self._fetch_contribs_per_repo_as_dicts(
+            repo_name, start_date
+        )
 
         # Convert start_date for filtering issues and PRs
         if isinstance(start_date, str):
@@ -176,7 +179,7 @@ class Fetcher:
 
         return pd.DataFrame(data)
 
-    def run(
+    def fetch_contribs(
         self, repo_names: str | list[str], *, start_date: str | None = None
     ) -> pd.DataFrame:
         """Get commits, issues, and PRs for all or specific repositories since start_date as a dataframe.
@@ -194,3 +197,93 @@ class Fetcher:
             contribs = pd.concat([contribs, repo_contribs], ignore_index=True)
 
         return contribs
+
+    def fetch_repos(self, year: int) -> list[str]:
+        """Get repositories in the organization that had any activity in the specified year."""
+        active_repos = []
+        all_repos = []
+        page = 1
+        start_date = f"{year}-01-01T00:00:00Z"
+        end_date = f"{year}-12-31T23:59:59Z"
+
+        print(f"Fetching repositories with activity in {year}...")
+
+        with tqdm(desc="Fetching repositories", unit="page") as pbar:
+            while True:
+                try:
+                    response = self.session.get(
+                        f"{self.base_url}/orgs/{self.org_name}/repos",
+                        params={  # type: ignore
+                            "page": page,
+                            "per_page": 100,
+                            "sort": "updated",
+                            "direction": "desc",
+                        },
+                    )
+                    response.raise_for_status()
+                    repos = response.json()
+
+                    if not repos:
+                        break
+
+                    all_repos.extend([repo["name"] for repo in repos])
+                    pbar.update(1)
+
+                    for repo in repos:
+                        repo_name = repo["name"]
+
+                        # Check for commits in the specified year
+                        try:
+                            commits_response = self.session.get(
+                                f"{self.base_url}/repos/{self.org_name}/{repo_name}/commits",
+                                params={  # type: ignore
+                                    "since": start_date,
+                                    "until": end_date,
+                                    "per_page": 1,
+                                },
+                            )
+                            if (
+                                commits_response.status_code == 200
+                                and commits_response.json()
+                            ):
+                                active_repos.append(repo_name)
+                                print(f"✓ {repo_name} - Active (has commits in {year})")
+                                continue
+
+                            # If no commits, check for issues/PRs created or updated in that year
+                            issues_response = self.session.get(
+                                f"{self.base_url}/repos/{self.org_name}/{repo_name}/issues",
+                                params={  # type: ignore
+                                    "since": start_date,
+                                    "per_page": 1,
+                                    "state": "all",
+                                },
+                            )
+                            if issues_response.status_code == 200:
+                                issues = issues_response.json()
+                                if issues:
+                                    # Verify issue was actually created in the target year
+                                    issue_created = datetime.fromisoformat(
+                                        issues[0]["created_at"].replace("Z", "+00:00")
+                                    )
+                                    if issue_created.year == year:
+                                        active_repos.append(repo_name)
+                                        print(
+                                            f"✓ {repo_name} - Active (has issues/PRs in {year})"
+                                        )
+                                        continue
+
+                        except requests.exceptions.RequestException as e:
+                            print(
+                                f"Warning: Error checking activity for {repo_name}: {str(e)}"
+                            )
+
+                    page += 1
+
+                except requests.exceptions.RequestException as e:
+                    print(f"Error fetching repositories page {page}: {str(e)}")
+                    break
+
+        print(f"\nFound {len(all_repos)} total repositories")
+        print(f"Found {len(active_repos)} active repositories in {year}")
+        return active_repos

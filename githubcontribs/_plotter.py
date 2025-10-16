@@ -31,7 +31,6 @@ class Plotter:
     def plot_total_number_by_author_by_type(
         self,
         top_n: int = 10,
-        exclude_author: str = "github-actions[bot]",
         start_date: str = None,
     ):
         """Plot total contributions by author, grouped by contribution type.
@@ -49,14 +48,12 @@ class Plotter:
             x="author",
             hue="type",
             top_n=top_n,
-            exclude_author=exclude_author,
             start_date=start_date,
         )
 
     def plot_number_by_month_by_author(
         self,
         top_n: int = 10,
-        exclude_author: str = "github-actions[bot]",
         type_filter: str = "pr",
         start_date: str = None,
     ):
@@ -77,7 +74,6 @@ class Plotter:
             x="time",
             hue="author",
             top_n=top_n,
-            exclude_author=exclude_author,
             type_filter=type_filter,
             start_date=start_date,
         )
@@ -87,7 +83,7 @@ class Plotter:
         x: str = "author",
         hue: str = "type",
         top_n: int = 10,
-        exclude_author: str = "github-actions[bot]",
+        exclude_authors: list[str] = None,
         time_aggregation: str = "month",
         type_filter: str = None,
         start_date: str = None,
@@ -98,12 +94,14 @@ class Plotter:
             x: Variable to plot on x-axis. Options: "author", "time". Defaults to "author".
             hue: Variable to use for color grouping. Options: "type", "author". Defaults to "type".
             top_n: Number of top items to show (authors or time periods). Defaults to 10.
-            exclude_author: Author to exclude from the plot. Defaults to "github-actions[bot]".
+            exclude_authors: Author to exclude from the plot. Defaults to "github-actions[bot]".
             time_aggregation: Time aggregation level when x="time". Options: "day", "week", "month", "year". Defaults to "month".
             type_filter: Filter to specific contribution type. Options: "commit", "issue", "pr", or None for all types.
             start_date: Filter contributions to only include those on or after this date. Format: "YYYY-MM-DD". Defaults to None (no filter).
         """
-        df = self.df[self.df.author != exclude_author].copy()
+        if exclude_authors is None:
+            exclude_authors = ["github-actions[bot]", "invalid-email-address"]
+        df = self.df[~self.df.author.isin(exclude_authors)].copy()
 
         # Convert date column to datetime
         df["date"] = pd.to_datetime(df["date"])
